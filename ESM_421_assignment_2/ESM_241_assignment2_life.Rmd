@@ -1,0 +1,252 @@
+---
+title: "ESM_421_LCV_life"
+author: "Ruben Sanchez Ramirez"
+date: "1/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(plyr)
+```
+
+```{r}
+candidate <- c("Bernie Sanders", "Elizabth Warren", "Joe Biden", "Trump")
+ideology <- c(10.5, 28, 44.5, 67.75)
+
+candidate_ideology <- data.frame(candidate, ideology)
+
+ggplot(data = candidate_ideology)+
+  geom_bar(aes(x = ideology, y =.5 ),
+           stat = "identity",
+           width = 0.3)+
+  geom_vline(aes(xintercept = 1),
+             color = "black", linetype="solid")+
+  geom_vline(aes(xintercept = 50),
+             color = "black", linetype="solid")+
+  geom_vline(aes(xintercept = 100),
+             color = "black", linetype="solid")+
+  geom_hline(yintercept=0.25)+
+  xlim(-0.5,100.5)+
+  scale_x_continuous(breaks = c(1,50,100),
+                       labels = c(1,50,100))+
+  theme_classic()
+```
+
+
+Read the "2018_LCV_Scores_P_set.csv" data set for question 4 :
+```{r}
+LCV_life <- read_csv("2018_LCV_Scores_P_Set.csv") %>% 
+  janitor::clean_names()
+```
+
+Create sub-sections: for the House and the Senate:
+```{r}
+house_life <- LCV_life %>% 
+  filter(chamber == 1)
+
+senate_life <- LCV_life %>% 
+  filter(chamber == 2)
+```
+
+Now, lets start by finding the median LCV scores and names in both the House and the Senate:
+```{r}
+house_LCV <- as.vector(house_life$lifetime_score)
+
+house_median <- median(house_LCV)
+house_closest <- which(abs(house_LCV-house_median)==min(abs(house_LCV-house_median)))
+house_median_LCV <- house_life$lifetime_score[house_closest]
+house_median_name <- house_life$name[house_closest]
+house_median_LCV
+house_median_name
+
+senate_LCV <- as.vector(senate_life$lifetime_score)
+
+senate_median <- median(senate_LCV)
+senate_closest <- which(abs(senate_LCV-senate_median)==min(abs(senate_LCV-senate_median)))
+senate_median_LCV <- senate_life$lifetime_score[senate_closest]
+senate_median_name <- senate_life$name[senate_closest]
+senate_median_LCV
+senate_median_name
+
+```
+
+Now, lets find the veto override (2/3) score and names in both the House and the Senate, for a President with LCV = 0:
+```{r}
+senate_v_piv <- ceiling(sum(sapply(senate_LCV,length)) * (2 / 3))
+
+senate_veto_0 <- senate_LCV %>%
+  sort() %>% 
+  tail(senate_v_piv) %>% 
+  head(1)
+senate_v0_LCV <- senate_life$lifetime_score[senate_LCV==senate_veto_0]
+senate_v0_name <- senate_life$name[senate_LCV==senate_veto_0]
+senate_v0_LCV
+senate_v0_name
+
+house_v_piv <- ceiling(sum(sapply(house_LCV, length)) * (2 / 3))
+
+house_veto_0 <- house_LCV %>% 
+  sort() %>% 
+  tail(house_v_piv) %>% 
+  head(1)
+house_v0_LCV <- house_life$lifetime_score[house_LCV==house_veto_0]
+house_v0_name <- house_life$name[house_LCV==house_veto_0]
+house_v0_LCV
+house_v0_name
+
+```
+
+Lets complete this senario by finding the filibuster pivot (3/5 - 60% | Right and Left) scores and names, for the Senate (NO filibuster in the House):
+```{r}
+senate_f_piv <- ceiling(sum(sapply(senate_LCV,length)) * (3 / 5))
+
+senate_fili_R <- senate_LCV %>%
+  sort() %>% 
+  tail(senate_f_piv) %>% 
+  head(1)
+senate_fR_LCV <- senate_life$lifetime_score[senate_LCV==senate_fili_R]
+senate_fR_name <- senate_life$name[senate_LCV==senate_fili_R]
+senate_fR_LCV
+senate_fR_name
+
+senate_fili_L <- senate_LCV %>% 
+  sort() %>% 
+  head(senate_f_piv) %>% 
+  tail(1)
+senate_fL_LCV <- senate_life$lifetime_score[senate_LCV==senate_fili_L]
+senate_fL_name <- senate_life$name[senate_LCV==senate_fili_L]
+senate_fL_LCV
+senate_fL_name
+
+```
+
+Now, lets see how things would change in a senario with a President of an LCV = 100 (Nothing else changes). The only difference would be in the veto override (2/3) scores and names in both the House and the Senate:
+```{r}
+senate_veto_100 <- senate_LCV %>%
+  sort() %>% 
+  head(senate_v_piv) %>% 
+  tail(1)
+senate_v100_LCV <- senate_life$lifetime_score[senate_LCV==senate_veto_100]
+senate_v100_name <- senate_life$name[senate_LCV==senate_veto_100]
+senate_v100_LCV
+senate_v100_name
+
+house_veto_100 <- house_LCV %>% 
+  sort() %>% 
+  head(house_v_piv) %>% 
+  tail(1)
+house_v100_LCV <- house_life$lifetime_score[house_LCV==house_veto_100]
+house_v100_name <- house_life$name[house_LCV==house_veto_100]
+house_v100_LCV
+house_v100_name
+
+#length(senate_veto_100)
+#senate_veto_100
+#length(house_veto_100)
+#house_veto_100
+
+```
+
+Now, lets make some graphs to visually represent this distribution:
+```{r}
+ggplot(house_life, 
+       aes(x = lifetime_score, 
+           fill = party,
+           color = party)) +
+  geom_histogram(position = "identity", 
+                 alpha = 0.5,
+                 binwidth = 1) +
+  scale_color_manual(values = c("dodgerblue2", "tomato2")) +
+  scale_fill_manual(values = c("dodgerblue2", "tomato2")) +
+  geom_vline(aes(xintercept = house_median),
+             color = "black",
+             linetype="solid")+
+  theme_minimal()
+
+ggplot(senate_life, 
+       aes(x = lifetime_score, 
+           fill = party,
+           color = party)) +
+  geom_histogram(position = "identity", 
+                 alpha = 0.5,
+                 binwidth = 1) +
+  scale_color_manual(values = c("dodgerblue2", "tomato2")) +
+  scale_fill_manual(values = c("dodgerblue2", "tomato2")) +
+  geom_vline(aes(xintercept = senate_median),
+             color = "black",
+             linetype="solid")+
+  theme_minimal()
+
+```
+
+```{r}
+LCV_life_plot <- LCV_life %>% 
+  group_by(chamber,
+           party,
+           lifetime_score) %>% 
+  dplyr::summarise(count=n()) %>% 
+  mutate(score_hou_sen = ifelse(chamber == 1,count,count*-1))
+
+ggplot(LCV_life_plot, 
+       aes(x = lifetime_score,
+           y = score_hou_sen,
+           fill = party,
+           color = party)) +
+  geom_bar(stat = "identity",
+           alpha = 0.5) +
+  scale_color_manual(values = c("dodgerblue2", "tomato2")) +
+  scale_fill_manual(values = c("dodgerblue2", "tomato2")) +
+  guides(color = FALSE,
+         fill = FALSE)+
+  geom_vline(aes(xintercept = house_median),
+             color = "black", linetype="solid")+
+  geom_text(aes(x=house_median, label="House Median", y=20),
+            color="black",  angle=90, vjust = -0.75, size=3, family="serif")+
+  geom_vline(aes(xintercept = senate_median),
+             color = "black", linetype="solid")+
+  geom_text(aes(x=senate_median, label="Senate Median", y=20),
+            color="black",  angle=90, vjust = -0.75, size=3, family="serif")+
+  geom_vline(aes(xintercept = house_veto_0),
+             color = "black", linetype="solid")+
+  geom_text(aes(x=house_veto_0, label="House Veto Pivot", y=20),
+            color="black",  angle=90, vjust = -0.75, size=3, family="serif")+
+   geom_vline(aes(xintercept = senate_veto_0),
+             color = "black", linetype="solid")+
+  geom_text(aes(x=senate_veto_0, label="Senate Veto Pivot", y=20),
+            color="black",  angle=90, vjust = -0.25, size=2.5, family="serif")+
+  geom_vline(aes(xintercept = senate_fili_L),
+             color = "black", linetype="solid")+
+  geom_text(aes(x=senate_fili_L, label="Filibuster Pivot Left", y=20),
+            color="black",  angle=90, vjust = -0.75, size=3, family="serif")+
+  geom_vline(aes(xintercept = senate_fili_R),
+             color = "black", linetype="solid")+
+  geom_text(aes(x=senate_fili_R, label="Filibuster Pivot Right", y=20),
+            color="black",  angle=90, vjust = -0.75, size=3, family="serif")+
+   geom_hline(yintercept=0)+
+  xlim(100.5,-0.5)+
+  scale_y_continuous(breaks = c(-10,0,10,20,30,40),
+                       labels = abs(c(-10,0,10,20,30,40)))+
+  geom_text(aes(x=50, label="Senate", y=-7),
+            color="tan4", size=5, family="serif")+
+  geom_text(aes(x=50, label="House", y=10),
+            color="tan4", size=5, family="serif")+
+  labs(title = "U.S. Congress LCV Scores",
+       subtitle = "Lifetime League of Conservation Voters Scores",
+       x = "LCV Score",
+       y = "Count")+
+  theme_minimal()+
+  theme(text = element_text(family = "serif"),
+    plot.title = element_text(size=18, face="bold"),
+    plot.subtitle = element_text(size = 12, face = "bold"),
+    axis.title.x = element_text(size=10, face="bold", vjust = -1),
+    axis.title.y = element_text(size=10, face="bold", vjust = 2))
+
+ggsave("us_LCV.png", width = 8, height = 5)
+
+```
+

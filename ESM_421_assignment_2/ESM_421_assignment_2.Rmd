@@ -1,0 +1,95 @@
+---
+title: "ESM_241_assignment_2"
+author: "Ruben Sanchez Ramirez"
+date: "1/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(plyr)
+```
+
+Read the "2018_LCV_Scores_P_set.csv" data set for question 4 
+```{r}
+LCV_2018 <- read_csv("2018_LCV_Scores_P_Set.csv") %>% 
+  janitor::clean_names()
+# make the column '2018_score' numeric
+LCV_num_score <- LCV_2018 %>% 
+  transform(x2018_score = as.numeric(x2018_score))
+```
+
+Create sub-sections: for the House and the Senate
+```{r}
+house_2018 <- LCV_num_score %>% 
+  filter(chamber == 1)
+
+senate_2018 <- LCV_num_score %>% 
+  filter(chamber == 2)
+```
+
+Now, lets start by finding the median LCV scores in both the House and the Senate:
+```{r}
+house_LCV <- as.vector(na.omit(house_2018$x2018_score))
+house_median <- median(house_LCV, na.rm = TRUE)
+house_closest <- which(abs(house_LCV-house_median)==min(abs(house_LCV-house_median)))
+house_LCV[house_closest]
+house_2018$name[house_closest]
+
+senate_LCV <- as.vector(senate_2018$x2018_score)
+senate_median <- median(senate_LCV, na.rm = TRUE)
+senate_closest <- which(abs(senate_LCV-senate_median)==min(abs(senate_LCV-senate_median)))
+senate_LCV[senate_closest]
+senate_2018$name[senate_closest]
+
+senate_v_piv <- ceiling(sum(sapply(senate_LCV,length)) * (2 / 3))
+
+senate_veto <- senate_LCV %>%
+  sort() %>% 
+  head(senate_v_piv) %>% 
+  tail(1)
+
+senate_2018$name[senate_veto]
+
+house_v_piv <- ceiling(sum(sapply(house_LCV, length)) * (2 / 3))
+
+house_veto <- house_LCV %>% 
+  sort() %>% 
+  head(house_v_piv) %>% 
+  tail(1)
+
+house_2018$name[house_veto]
+# match(sum(sapply(senate_LCV,length)) == 60, senate_LCV)
+
+# sum(sapply(senate_LCV,length)) %>% `==`(60) %>% which()
+
+# senate_LCV %>% { match(sum(sapply(senate_LCV,length)), 60) }
+
+# senate_LCV %>% sum(sapply(senate_LCV,length))
+```
+
+Lets try to graph the disrtibution for both the House and the Senate:
+```{r}
+ggplot(house_2018, 
+       aes(x = x2018_score, 
+           fill = party,
+           color = party)) +
+  geom_histogram(position = "identity", 
+                 alpha = 0.5) +
+  scale_color_manual(values = c("dodgerblue2", "tomato2")) +
+  scale_fill_manual(values = c("dodgerblue2", "tomato2")) +
+  geom_vline(aes(xintercept = house_median),
+             color = "black",
+             linetype="solid")
+
+```
+
+Now, lets find the filabuster prviot 
+```{r}
+
+```
+

@@ -1,0 +1,290 @@
+---
+title: "ESM_421_a2_Q5"
+author: "Ruben Sanchez Ramirez"
+date: "1/31/2020"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+
+```
+
+Start by reading in the data from 'DeGoliaSurvey_PSet.csv' and the meta data from 'DeGoliaSurvey_M.csv':
+```{r}
+public_survey_data <- read_csv("DeGoliaSurvey_PSet.csv") %>% 
+  clean_names()
+p_survey_meta <- read_csv("DeGoliaSurvey_M.csv") %>% 
+  na.omit() %>% 
+  clean_names()
+```
+
+```{r}
+captrade_neutral <- sum(public_survey_data$captrade == 3)
+captrade_support <- sum(public_survey_data$captrade %in% c(4,5))
+captrade_oppose <- sum(public_survey_data$captrade %in% c(1,3))                     
+captrade_neutral
+captrade_support
+captrade_oppose
+
+renew_neutral <- sum(public_survey_data$renewables == 3)
+renew_support <- sum(public_survey_data$renewables %in% c(4,5))
+renew_oppose <- sum(public_survey_data$renewables %in% c(1,2))
+renew_neutral
+renew_support
+renew_oppose
+
+landcon_neutral <- sum(public_survey_data$landconservation == 3)
+landcon_support <- sum(public_survey_data$landconservation %in% c(4,5))
+landcon_oppose <- sum(public_survey_data$landconservation %in% c(1,2))
+landcon_neutral
+landcon_support
+landcon_oppose
+```
+
+Let make a new date set from 'public_survey_data' that has one set of values for each policy issue (pivot_longer):
+```{r}
+survey_tidy <- public_survey_data %>% 
+  pivot_longer(cols = c(captrade,
+                        renewables,
+                        landconservation), 
+               names_to = "policy_issue",
+               values_to = "score")
+policy_issue.labs <- c("Cap-And-Trade", "Land Conservation", "Renewable Energy")
+names(policy_issue.labs) <- c("captrade", "landconservation", "renewables")
+```
+
+
+Now, lets compare the numbers across the different policy issues:
+```{r}
+ggplot(data = survey_tidy,
+       aes(x = score)) +
+  geom_histogram(aes(fill = policy_issue),
+                 binwidth = 0.5,
+                 position = "dodge") +
+  stat_bin(binwidth= 1,
+           geom="text", 
+           aes(label=..count..),
+           vjust = -1) +
+  facet_wrap(~policy_issue,
+             labeller = labeller(policy_issue = policy_issue.labs)) +
+  ylim(0,180)+
+  guides(fill = FALSE)+
+  labs(title = "Support For Environmental Protection",
+       subtitle = "(1 = Strongly Oppose, 5 = Strongly Support)",
+       x = "Level of Support",
+       y = "Count")+
+  theme_minimal()+
+  theme(text = element_text(family = "serif"),
+    plot.title = element_text(size=14, face="bold"),
+    plot.subtitle = element_text(size = 9, face = "bold.italic"),
+    axis.title.x = element_text(size=10, face="bold", vjust = -1),
+    axis.title.y = element_text(size=10, face="bold", vjust = 2),
+    strip.text.x = element_text(size = 10, face = "bold.italic"))
+
+ggsave("envi_support.png", width = 5, height = 5)
+
+```
+
+```{r}
+cap_trad_gender <- survey_tidy %>% 
+  filter(policy_issue == "captrade") %>% 
+  mutate(gender = case_when(
+  gender == 1  ~ "Male",
+  gender == 2  ~ "Female"))
+
+#%>% 
+  #group_by(gender, score) %>% 
+  #dplyr::summarise(n = n())
+```
+
+```{r}
+ggplot(data = cap_trad_gender,
+       aes(x = score)) +
+  geom_histogram(aes(fill = gender),
+                 binwidth = 0.5,
+                 position = "dodge") +
+  stat_bin(binwidth= 1,
+           geom="text", 
+           aes(label=..count..),
+           vjust = -1) +
+  facet_wrap(~gender) +
+  ylim(0,90)+
+  guides(fill = FALSE)+
+  labs(title = "Female vs. Male Support For Cap-And-Trade",
+       subtitle = "(1 = Strongly Oppose, 5 = Strongly Support)",
+       x = "Level of Support",
+       y = "Count")+
+  theme_minimal()+
+  theme(text = element_text(family = "serif"),
+    plot.title = element_text(size=14, face="bold"),
+    plot.subtitle = element_text(size = 9, face = "bold.italic"),
+    axis.title.x = element_text(size=10, face="bold", vjust = -1),
+    axis.title.y = element_text(size=10, face="bold", vjust = 2),
+    strip.text.x = element_text(size = 10, face = "bold.italic"))
+
+ggsave("male_female.png", width = 5, height = 5)
+
+```
+
+```{r}
+renewable_party <- survey_tidy %>% 
+  filter(policy_issue == "renewables") %>% 
+  filter(partyid != 4) %>% 
+  mutate(partyid = case_when(
+  partyid == 1  ~ "Republican",
+  partyid == 2  ~ "Democrat",
+  partyid == 3 ~ "Independent"))
+```
+
+```{r}
+ggplot(data = renewable_party,
+       aes(x = score)) +
+  geom_histogram(aes(fill = partyid),
+                 binwidth = 0.5,
+                 position = "dodge") +
+  stat_bin(binwidth= 1,
+           geom="text", 
+           aes(label=..count..),
+           vjust = -1) +
+  facet_wrap(~partyid) +
+  ylim(0,100)+
+  guides(fill = FALSE)+
+  labs(title = "Party Support For Renewable Energy",
+       subtitle = "(1 = Strongly Oppose, 5 = Strongly Support)",
+       x = "Level of Support",
+       y = "Count")+
+  theme_minimal()+
+  theme(text = element_text(family = "serif"),
+    plot.title = element_text(size=14, face="bold"),
+    plot.subtitle = element_text(size = 9, face = "bold.italic"),
+    axis.title.x = element_text(size=10, face="bold", vjust = -1),
+    axis.title.y = element_text(size=10, face="bold", vjust = 2),
+    strip.text.x = element_text(size = 10, face = "bold.italic"))
+
+ggsave("party_renew_e.png", width = 5, height = 5)
+
+```
+
+```{r}
+landcon_party <- survey_tidy %>% 
+  filter(policy_issue == "landconservation") %>% 
+  filter(partyid != 4) %>% 
+  mutate(partyid = case_when(
+  partyid == 1  ~ "Republican",
+  partyid == 2  ~ "Democrat",
+  partyid == 3 ~ "Independent"))
+```
+
+```{r}
+ggplot(data = landcon_party,
+       aes(x = score)) +
+  geom_histogram(aes(fill = partyid),
+                 binwidth = 0.5,
+                 position = "dodge") +
+  stat_bin(binwidth= 1,
+           geom="text", 
+           aes(label=..count..),
+           vjust = -1) +
+  facet_wrap(~partyid) +
+  ylim(0,100)+
+  guides(fill = FALSE)+
+  labs(title = "Party Support For Land Conservation",
+       subtitle = "(1 = Strongly Oppose, 5 = Strongly Support)",
+       x = "Level of Support",
+       y = "Count")+
+  theme_minimal()+
+  theme(text = element_text(family = "serif"),
+    plot.title = element_text(size=14, face="bold"),
+    plot.subtitle = element_text(size = 9, face = "bold.italic"),
+    axis.title.x = element_text(size=10, face="bold", vjust = -1),
+    axis.title.y = element_text(size=10, face="bold", vjust = 2),
+    strip.text.x = element_text(size = 10, face = "bold.italic"))
+
+ggsave("party_land_c.png", width = 5, height = 5)
+
+```
+
+```{r}
+NRDC_donors <- survey_tidy %>% 
+  filter(policy_issue == "landconservation") %>% 
+  filter(score == 5) %>% 
+  filter(partyid == 2)
+NRDC_age_bin <- NRDC_donors %>%   
+  mutate(age = case_when(
+  age %in% 19:25 ~ "18-25",
+  age %in% 26:30 ~ "26-30",
+  age %in% 31:35 ~ "31-35",
+  age %in% 36:40 ~ "36-40",
+  age %in% 41:45 ~ "41-45",
+  age %in% 46:50 ~ "46-50",
+  age %in% 51:55 ~ "51-55",
+  age %in% 56:60 ~ "56-60",
+  age %in% 61:65 ~ "61-65",
+  age %in% 66:70 ~ "66-70"))
+
+NRDC_d_names <- NRDC_summary %>%
+  mutate(gender = case_when(
+    gender == 1  ~ "Male", 
+    gender == 2  ~ "Female")) %>% 
+  mutate(income = case_when(
+    income == 1 ~ "<10k",
+    income == 2 ~ "<29.9k",
+    income == 3 ~ "<49.9k",
+    income == 4 ~ "<74.9k",
+    income == 5 ~ "<99.9k",
+    income == 6 ~ ">100k",
+    income == 7 ~ "NA"
+  )) %>% 
+  mutate(education = case_when(
+    education == 1 ~ "Less Than HS",
+    education == 2 ~ "HS Graduate",
+    education == 3 ~ "Some Collage",
+    education == 4 ~ "Bachelors Degree",
+    education == 5 ~ "Advanced Degree"
+  ))
+  
+
+NRDC_summary <- NRDC_age_bin %>% 
+  group_by(education, income, age, gender, partyid) %>% 
+  dplyr::summarise(count = n())
+
+summary(NRDC_donors)
+  
+```
+
+```{r}
+ggplot(data = NRDC_d_names,
+       aes(x = age, y = count))+
+  geom_bar(stat = "identity",
+           aes(fill = gender,
+                     width = 0.5),
+                 position = "dodge")+
+  facet_grid(income~education)+
+  scale_y_continuous(breaks = c(0,3),
+                       labels = c(0,3))+
+  scale_x_discrete(breaks = c("31-35"),
+                       labels = c("31-35"))+
+  labs(title = "NRDC Donor Target",
+       subtitle = "Support For Land Conservation",
+       x = "Age",
+       y = "Count",
+       fill = "Gender")+
+  theme_minimal()+
+    theme(text = element_text(family = "serif"),
+    plot.title = element_text(size=14, face="bold"),
+    plot.subtitle = element_text(size = 9, face = "bold.italic"),
+    axis.title.x = element_text(size=10, face="bold", vjust = -1),
+    axis.title.y = element_text(size=10, face="bold", vjust = 2),
+    strip.text.x = element_text(size = 10, face = "bold.italic"),
+    legend.title = element_text(size = 10, face = "bold.italic"))
+
+ggsave("NRDC_donor.png", width = 8, height = 5)
+
+```
+
